@@ -119,11 +119,13 @@
    - 链: Solana
    - 网址: [https://raydium.io/](https://raydium.io/)
 2. 通用 Swap 组件需要支持 Raydium。
-3. 支持的代币 (Solana):| Token Symbol | Address                                      |
-   | ------------ | -------------------------------------------- |
-   | SOL          | (原生)                                       |
-   | USDT         | Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB |
-   | USDC         | EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v |
+3. 支持的代币 (Solana):
+
+| Token Symbol | Address                                      |
+| ------------ | -------------------------------------------- |
+| SOL          | (原生)                                       |
+| USDT         | Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB |
+| USDC         | EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v |
 
 #### 2.7 Memberlist下载新增用户等级
 
@@ -190,10 +192,13 @@
 
 - **涉及服务商**: zkPass, zkMe (新)。
 - **现有任务扩展**: Binance KYC 验证新增 zkMe 服务商。
-- **新任务列表**:| 服务商  | 任务名[B端]                               | 任务名[C端]                               | 任务描述[B端]             | 任务描述[C端]       | 跳转链接[C端]                                                   |
-  | ------- | ----------------------------------------- | ----------------------------------------- | ------------------------- | ------------------- | --------------------------------------------------------------- |
-  | Binance | BABT（Binance Account Bond Token） Holder | BABT（Binance Account Bond Token） Holder | User need to own BABT NFT | How to get BABT     | [https://www.binance.com/en/BABT](https://www.binance.com/en/BABT) |
-  | zkMe    | zkMe NFT Holder                           | zkMe NFT Holder                           | User need to own zkMe NFT | How to get zkMe NFT | (zkMe 提供)                                                     |
+- **新任务列表**:
+
+| 服务商  | 任务名[B端]                         | 任务名[C端]                         | 任务描述[B端]           | 任务描述[C端]       | 跳转链接[C端]                                           |
+| ------- | ----------------------------------- | ----------------------------------- | ----------------------- | ------------------- | ------------------------------------------------------- |
+| Binance | BABT（Binance Account Bond Token）Holder | BABT（Binance Account Bond Token）Holder | User need to own BABT NFT | How to get BABT     | [https://www.binance.com/en/BABT](https://www.binance.com/en/BABT) |
+| zkMe    | zkMe NFT Holder                     | zkMe NFT Holder                     | User need to own zkMe NFT | How to get zkMe NFT | (zkMe 提供)                                             |
+
 - **UI (BABT)**: ![image.png](1%209%207%20TaskOn%E4%BC%98%E5%8C%96%E9%9C%80%E6%B1%82%201c9c8690efc4809eb815e237416537f3/image%2010.png)
 
 #### 2.9 B端Quest/Task配置页展示优化
