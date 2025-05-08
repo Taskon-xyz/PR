@@ -542,6 +542,39 @@ flowchart TD
   - 到达结束时间时自动转为Expired
   - 手动取消时转为Canceled
 
+**状态扭转图**：
+
+```mermaid
+stateDiagram-v2
+    [*] --> Draft: 创建投放
+  
+    Draft --> Upcoming: Publish且<br>当前时间<开始时间
+    Draft --> Ongoing: Publish且<br>当前时间>=开始时间
+  
+    Upcoming --> Ongoing: 自动转换<br>(到达开始时间)
+  
+    Ongoing --> Ended: 自动转换<br>(达到完成人数上限)
+    Ongoing --> Expired: 自动转换<br>(到达结束时间)
+    Ongoing --> Canceled: 手动取消
+  
+    Ended --> [*]
+    Expired --> [*]
+    Canceled --> [*]
+```
+
+**状态转换条件详解**：
+
+| 起始状态 | 目标状态 | 转换类型 | 转换条件                                        |
+| -------- | -------- | -------- | ----------------------------------------------- |
+| Draft    | Upcoming | 手动触发 | 运营点击Publish且当前时间早于投放开始时间       |
+| Draft    | Ongoing  | 手动触发 | 运营点击Publish且当前时间已达或超过投放开始时间 |
+| Upcoming | Ongoing  | 自动触发 | 系统检测到当前时间已达到投放开始时间            |
+| Ongoing  | Ended    | 自动触发 | 系统检测到完成用户数已达到预设上限              |
+| Ongoing  | Expired  | 自动触发 | 系统检测到当前时间已达到投放结束时间            |
+| Ongoing  | Canceled | 手动触发 | 运营在投放列表页点击Cancel按钮                  |
+
+> 来源：[运营后台-自定义标签+精准推荐.md](./运营后台-自定义标签+精准推荐.md)
+
 #### 用户筛选条件规则
 
 **规则说明**：
@@ -556,17 +589,17 @@ flowchart TD
 
 **非常驻筛选项**：
 
-- XP：支持大于/等于/大于等于/小于/小于等于操作符
-- Gold XP：支持数值比较操作符
-- Balance：支持数值比较操作符
-- Total Txn：支持数值比较操作符
-- Total Volume：支持数值比较操作符
-- ThirdWave：支持数值比较操作符
-- Total_Onchain：支持数值比较操作符
-- 30D_Onchain：支持数值比较操作符
-- 7D_Onchain：支持数值比较操作符
-- Quest_Onchain：支持数值比较操作符
-- Task_Onchain：支持数值比较操作符
+- XP：大于/等于/大于等于/小于/小于等于一个数值（支持五种数值操作符号）
+- Gold XP：大于/等于一个数值
+- Balance：大于/等于/大于等于/小于/小于等于一个数值（支持五种数值操作符号）
+- Total Txn：大于/等于一个数值
+- Total Volume：大于/等于一个数值
+- ThirdWave：大于/等于一个数值
+- Total_Onchain：大于/等于一个数值
+- 30D_Onchain：大于/等于一个数值
+- 7D_Onchain：大于/等于一个数值
+- Quest_Onchain：大于/等于一个数值
+- Task_Onchain：大于/等于一个数值
 
 #### 后台用户与权限管理规则
 
@@ -603,6 +636,169 @@ flowchart TD
 10. Onchain Action运营：查看列表，create，填写内容，保存草稿，Delete草稿
 11. Onchain Action管理：Publish，Edit已发布Action，End
 12. 审核风险合约
+
+**RBAC权限模型实现（ 自己整理部分，需求没整理）**：
+
+系统采用标准的RBAC(基于角色的访问控制)模型实现权限管理，主要包含以下核心组件：
+
+```mermaid
+erDiagram
+    USER ||--o{ USER-ROLE : has
+    USER {
+        string user_id
+        string username
+        string password
+        boolean is_active
+        datetime create_time
+    }
+    ROLE ||--o{ USER-ROLE : assigned_to
+    ROLE ||--o{ ROLE-PERMISSION : contains
+    ROLE {
+        string role_id
+        string role_name
+        datetime create_time
+    }
+    USER-ROLE {
+        string user_id
+        string role_id
+    }
+    PERMISSION ||--o{ ROLE-PERMISSION : assigned_to
+    PERMISSION {
+        string permission_id
+        string permission_name
+        string permission_code
+        string resource
+        string action
+    }
+    ROLE-PERMISSION {
+        string role_id
+        string permission_id
+    }
+```
+
+**RBAC模型组件说明**：
+
+1. **用户(User)**：系统的操作者，每个用户拥有唯一标识
+2. **角色(Role)**：代表用户在组织中的职能，如管理员、运营人员等
+3. **权限(Permission)**：定义对特定资源执行特定操作的能力
+4. **用户-角色映射**：定义用户和角色之间的多对多关系
+5. **角色-权限映射**：定义角色和权限之间的多对多关系
+
+**权限校验流程**：
+
+```mermaid
+flowchart TD
+    A[用户请求访问资源] --> B{用户是否通过认证?}
+    B -->|否| C[拒绝访问]
+    B -->|是| D[获取用户角色]
+    D --> E[获取角色关联的权限]
+    E --> F{是否包含所需权限?}
+    F -->|否| C
+    F -->|是| G[允许访问资源]
+```
+
+**系统权限资源与操作明细表**：
+
+**命名规范说明**:
+
+- **资源编码**: 使用 `RES_`前缀加模块标识符和序号，例如 `RES_USR_001`
+- **操作编码**: 使用 `ACT_`前缀加操作类型标识符和序号，例如 `ACT_CRE_001`
+- **权限编码**: 资源编码+操作编码组合，例如 `RES_USR_001:ACT_CRE_001`
+- **前端权限检查**: 可使用 `checkPermission('RES_USR_001:ACT_CRE_001')`格式进行权限验证
+
+| 权限类别                     | 资源           | 资源编码     | 操作      | 操作编码     | 权限编码                  | 说明                   |
+| ---------------------------- | -------------- | ------------ | --------- | ------------ | ------------------------- | ---------------------- |
+| **用户管理**           | 后台用户       | RES_USR_001  | 创建      | ACT_CRE_001  | RES_USR_001:ACT_CRE_001   | 添加新的后台用户账号   |
+|                              | 后台用户       | RES_USR_001  | 禁用/启用 | ACT_STA_001  | RES_USR_001:ACT_STA_001   | 禁用或重新启用用户账号 |
+|                              | 后台用户       | RES_USR_001  | 编辑      | ACT_EDT_001  | RES_USR_001:ACT_EDT_001   | 修改用户信息和角色     |
+| **角色管理**           | 角色           | RES_ROL_001  | 创建      | ACT_CRE_001  | RES_ROL_001:ACT_CRE_001   | 添加新角色             |
+|                              | 角色           | RES_ROL_001  | 编辑      | ACT_EDT_001  | RES_ROL_001:ACT_EDT_001   | 修改现有角色的权限     |
+|                              | 角色           | RES_ROL_001  | 删除      | ACT_DEL_001  | RES_ROL_001:ACT_DEL_001   | 删除未绑定用户的角色   |
+| **操作日志查看**       | 操作日志       | RES_LOG_001  | 查看      | ACT_VIEW_001 | RES_LOG_001:ACT_VIEW_001  | 查看系统操作记录       |
+| **User list运营**      | 平台用户       | RES_PUSR_001 | 查看      | ACT_VIEW_001 | RES_PUSR_001:ACT_VIEW_001 | 查看TaskOn平台用户列表 |
+|                              | 平台用户       | RES_PUSR_001 | 筛选      | ACT_FLT_001  | RES_PUSR_001:ACT_FLT_001  | 使用条件筛选用户       |
+|                              | 平台用户       | RES_PUSR_001 | 详情查看  | ACT_DTL_001  | RES_PUSR_001:ACT_DTL_001  | 查看用户详细信息       |
+| **Label运营**          | 标签           | RES_LBL_001  | 查看      | ACT_VIEW_001 | RES_LBL_001:ACT_VIEW_001  | 查看Label列表          |
+|                              | 标签           | RES_LBL_001  | 创建      | ACT_CRE_001  | RES_LBL_001:ACT_CRE_001   | 创建新的用户标签       |
+|                              | 标签           | RES_LBL_001  | 编辑      | ACT_EDT_001  | RES_LBL_001:ACT_EDT_001   | 修改已有标签           |
+|                              | 标签           | RES_LBL_001  | 删除      | ACT_DEL_001  | RES_LBL_001:ACT_DEL_001   | 删除标签               |
+| **Delivery运营**       | Delivery       | RES_DEL_001  | 查看      | ACT_VIEW_001 | RES_DEL_001:ACT_VIEW_001  | 查看delivery列表       |
+|                              | Delivery       | RES_DEL_001  | 创建      | ACT_CRE_001  | RES_DEL_001:ACT_CRE_001   | 创建新的投放           |
+|                              | Delivery       | RES_DEL_001  | 填写内容  | ACT_CON_001  | RES_DEL_001:ACT_CON_001   | 配置投放内容           |
+|                              | Delivery       | RES_DEL_001  | 保存草稿  | ACT_SAV_001  | RES_DEL_001:ACT_SAV_001   | 将投放保存为草稿状态   |
+|                              | Delivery       | RES_DEL_001  | 删除草稿  | ACT_DEL_001  | RES_DEL_001:ACT_DEL_001   | 删除草稿状态的投放     |
+| **Delivery管理**       | Delivery       | RES_DEL_001  | Publish   | ACT_PUB_001  | RES_DEL_001:ACT_PUB_001   | 发布投放使其生效       |
+|                              | Delivery       | RES_DEL_001  | Edit      | ACT_EDT_002  | RES_DEL_001:ACT_EDT_002   | 编辑已发布的投放       |
+|                              | Delivery       | RES_DEL_001  | Cancel    | ACT_CAN_001  | RES_DEL_001:ACT_CAN_001   | 取消进行中的投放       |
+| **B端Request运营**     | B端Request     | RES_BREQ_001 | 查看      | ACT_VIEW_001 | RES_BREQ_001:ACT_VIEW_001 | 查看所有B端请求信息    |
+| **B端Request管理**     | B端Request     | RES_BREQ_001 | Accept    | ACT_ACC_001  | RES_BREQ_001:ACT_ACC_001  | 接受B端请求            |
+|                              | B端Request     | RES_BREQ_001 | Reject    | ACT_REJ_001  | RES_BREQ_001:ACT_REJ_001  | 拒绝B端请求            |
+|                              | B端Request     | RES_BREQ_001 | 编辑      | ACT_EDT_001  | RES_BREQ_001:ACT_EDT_001  | 编辑B端请求            |
+|                              | B端Request     | RES_BREQ_001 | 退款      | ACT_REF_001  | RES_BREQ_001:ACT_REF_001  | 处理B端请求退款        |
+| **Onchain Action运营** | Onchain Action | RES_OCA_001  | 查看      | ACT_VIEW_001 | RES_OCA_001:ACT_VIEW_001  | 查看Onchain task列表   |
+|                              | Onchain Action | RES_OCA_001  | 创建      | ACT_CRE_001  | RES_OCA_001:ACT_CRE_001   | 创建新的Onchain Action |
+|                              | Onchain Action | RES_OCA_001  | 填写内容  | ACT_CON_001  | RES_OCA_001:ACT_CON_001   | 配置Action内容         |
+|                              | Onchain Action | RES_OCA_001  | 保存草稿  | ACT_SAV_001  | RES_OCA_001:ACT_SAV_001   | 将Action保存为草稿     |
+|                              | Onchain Action | RES_OCA_001  | 删除草稿  | ACT_DEL_001  | RES_OCA_001:ACT_DEL_001   | 删除草稿状态的Action   |
+| **Onchain Action管理** | Onchain Action | RES_OCA_001  | Publish   | ACT_PUB_001  | RES_OCA_001:ACT_PUB_001   | 发布Action使其生效     |
+|                              | Onchain Action | RES_OCA_001  | Edit      | ACT_EDT_002  | RES_OCA_001:ACT_EDT_002   | 编辑已发布的Action     |
+|                              | Onchain Action | RES_OCA_001  | End       | ACT_END_001  | RES_OCA_001:ACT_END_001   | 结束正在进行的Action   |
+| **审核风险合约**       | 合约           | RES_CNT_001  | 查看      | ACT_VIEW_001 | RES_CNT_001:ACT_VIEW_001  | 查看合约列表           |
+|                              | 合约           | RES_CNT_001  | 添加      | ACT_ADD_001  | RES_CNT_001:ACT_ADD_001   | 添加新合约             |
+|                              | 合约           | RES_CNT_001  | 更改状态  | ACT_STA_001  | RES_CNT_001:ACT_STA_001   | 修改合约的信任状态     |
+
+**资源编码对照表**：
+
+| 资源代码     | 资源名称       | 说明                |
+| ------------ | -------------- | ------------------- |
+| RES_USR_001  | 后台用户       | 运营后台的用户账号  |
+| RES_ROL_001  | 角色           | 用户角色定义        |
+| RES_LOG_001  | 操作日志       | 系统操作记录        |
+| RES_PUSR_001 | 平台用户       | TaskOn平台的C端用户 |
+| RES_LBL_001  | 标签           | 用户标签            |
+| RES_DEL_001  | Delivery       | 内容投放配置        |
+| RES_BREQ_001 | B端Request     | B端业务请求         |
+| RES_OCA_001  | Onchain Action | 链上活动            |
+| RES_CNT_001  | 合约           | 智能合约            |
+
+**操作编码对照表**：
+
+| 操作代码     | 操作名称     | 说明                |
+| ------------ | ------------ | ------------------- |
+| ACT_VIEW_001 | 查看         | 查看资源列表或详情  |
+| ACT_CRE_001  | 创建         | 创建新资源          |
+| ACT_EDT_001  | 编辑(草稿)   | 编辑未发布/草稿资源 |
+| ACT_EDT_002  | 编辑(已发布) | 编辑已发布资源      |
+| ACT_DEL_001  | 删除         | 删除资源            |
+| ACT_STA_001  | 状态变更     | 变更资源状态        |
+| ACT_FLT_001  | 筛选         | 按条件筛选资源      |
+| ACT_DTL_001  | 详情查看     | 查看资源详情        |
+| ACT_CON_001  | 内容配置     | 配置资源内容        |
+| ACT_SAV_001  | 保存草稿     | 保存为草稿状态      |
+| ACT_PUB_001  | 发布         | 发布资源使其生效    |
+| ACT_CAN_001  | 取消         | 取消进行中的资源    |
+| ACT_ACC_001  | 接受         | 接受请求            |
+| ACT_REJ_001  | 拒绝         | 拒绝请求            |
+| ACT_REF_001  | 退款         | 处理退款            |
+| ACT_ADD_001  | 添加         | 添加新资源          |
+| ACT_END_001  | 结束         | 结束进行中的资源    |
+
+**预设角色权限配置**：
+
+| 角色               | 拥有权限                                                                                               |
+| ------------------ | ------------------------------------------------------------------------------------------------------ |
+| **管理员**   | 所有权限                                                                                               |
+| **运营人员** | User list运营 `<br>`Label运营 `<br>`Delivery运营 `<br>`B端Request运营 `<br>`Onchain Action运营 |
+
+**RBAC模型优势**：
+
+- **简化管理**：通过角色对权限进行分组管理，降低权限分配的复杂度
+- **职责分离**：可以基于业务职能划分角色，符合实际业务场景
+- **最小权限原则**：用户只能获得执行其职责所需的最小权限集合
+- **审计便利**：系统可以轻松记录和审计用户通过角色获得的权限
+- **动态调整**：可以动态调整角色的权限集合，无需修改用户与角色的关联
+
+> 来源：[运营后台框架需求.md](./运营后台框架需求.md)
 
 **标准运营角色权限**：
 
@@ -769,6 +965,8 @@ flowchart TD
 
 ## 七、开发任务拆解
 
+> 注：以下开发任务拆解是基于对原始需求文档的综合分析和整理，非原始文档直接提供的内容。各任务均链接到对应的原始需求来源。
+
 根据以上需求分析，以下是按业务重要程度排序的开发任务拆解，每个任务按照2天工期进行估算。
 
 ### 后端任务
@@ -889,21 +1087,21 @@ flowchart TD
 
    > 来源：[c端精准推荐.md](./c端精准推荐.md)
    >
-3. **用户权限模型设计（暂时不排）**
+3. **用户权限模型实现（不排，采用开源项目）**
 
-   - 设计后台用户和权限数据结构
-   - 实现角色和权限分配机制
+   - 实现RBAC权限模型
    - 开发权限验证中间件
+   - 构建角色和权限分配机制
 
-   > 来源：[运营后台框架需求.md](./运营后台框架需求.md)
+   > 来源：[运营后台-自定义标签+精准推荐.md](./运营后台-自定义标签+精准推荐.md)
    >
-4. **操作日志服务（暂时不排）**
+4. **操作日志服务（不排，采用开源项目）**
 
    - 开发操作日志记录机制
    - 实现日志查询和筛选接口
    - 构建日志数据存储和清理策略
 
-   > 来源：[运营后台框架需求.md](./运营后台框架需求.md)
+   > 来源：[运营后台-自定义标签+精准推荐.md](./运营后台-自定义标签+精准推荐.md)
    >
 
 ### 前端任务
@@ -985,21 +1183,21 @@ flowchart TD
 
    > 来源：[运营后台-自定义标签+精准推荐.md](./运营后台-自定义标签+精准推荐.md)
    >
-2. **后台用户管理界面（暂时不排）**
+2. **后台用户管理界面（不排，采用开源项目）**
 
    - 开发用户管理组件
    - 实现用户创建和编辑功能
    - 集成权限分配和状态管理
 
-   > 来源：[运营后台框架需求.md](./运营后台框架需求.md)
+   > 来源：[运营后台-自定义标签+精准推荐.md](./运营后台-自定义标签+精准推荐.md)
    >
-3. **角色与权限配置界面（暂时不排）**
+3. **角色与权限配置界面**
 
    - 开发角色管理组件
    - 实现权限配置和分配界面
    - 集成权限预览和测试功能
 
-   > 来源：[运营后台框架需求.md](./运营后台框架需求.md)
+   > 来源：[运营后台-自定义标签+精准推荐.md](./运营后台-自定义标签+精准推荐.md)
    >
 4. **UI/UX优化与统一**
 
@@ -1007,15 +1205,16 @@ flowchart TD
    - 统一页面风格和视觉效果
    - 实现响应式适配和兼容性测试
 
-   > 来源：综合需求
+   > 来源：综合需求（基于[c端精准推荐.md](./c端精准推荐.md)和[运营后台-自定义标签+精准推荐.md](./运营后台-自定义标签+精准推荐.md)的UI要求）
    >
 
 #### 低优先级任务
 
-1. **操作日志查看界面**
+1. **操作日志查看界面（不排，采用开源项目）**
+
    - 开发日志列表展示组件
    - 实现日志筛选和搜索功能
    - 集成日志详情查看功能
 
-   > 来源：[运营后台框架需求.md](./运营后台框架需求.md)
+   > 来源：[运营后台-自定义标签+精准推荐.md](./运营后台-自定义标签+精准推荐.md)
    >
