@@ -10,49 +10,23 @@
 
 **可见广告定义:**
 
-<table border="1" width="100%" cellspacing="0" cellpadding="8">
-  <thead>
-    <tr>
-      <th align="left" width="30%"><strong>广告内容类型</strong></th>
-      <th align="left" width="70%"><strong>可见逻辑</strong></th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td valign="top">Action - 单action</td>
-      <td>
-        满足以下所有条件:
-
+| **广告内容类型** | **可见逻辑** |
+| --- | --- |
+| Action - 单action | 满足以下所有条件: 
 - Action 处于 ongoing 状态
 - 非隐藏
 - 用户未领取奖励
 - 当前时间处于广告设置的开始时间和结束时间范围内
-- 用户符合广告投放设置的命中用户群
-      </td>
-    </tr>
-    <tr>
-      <td valign="top">Action - collection</td>
-      <td>
-        满足以下所有条件:
-
+- 用户符合广告投放设置的命中用户群 |
+| Action - collection | 满足以下所有条件: 
 - Collection 中起码有1个 action 处于 ongoing 状态
 - 非隐藏
 - 用户未领取完所有 action 的奖励
 - 当前时间处于广告设置的开始时间和结束时间范围内
-- 用户符合广告投放设置的命中用户群
-      </td>
-    </tr>
-    <tr>
-      <td valign="top">Custom</td>
-      <td>
-        满足以下所有条件:
-
+- 用户符合广告投放设置的命中用户群 |
+| Custom | 满足以下所有条件: 
 - 当前时间处于广告设置的开始时间和结束时间范围内
-- 用户符合广告投放设置的命中用户群
-      </td>
-    </tr>
-  </tbody>
-</table>
+- 用户符合广告投放设置的命中用户群 |
 
 **出现页面:**
 
